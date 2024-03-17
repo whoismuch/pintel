@@ -26,6 +26,10 @@ public class WebhookController {
         return bot.onWebhookUpdateReceived(update);
     }
 
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello, World!";
+    }
 
     @PostMapping("/test/tag")
     @SneakyThrows
@@ -33,11 +37,5 @@ public class WebhookController {
         byte[] fileBytes = file.getBytes();
         String tags = imageToMeaningTagsService.imageToTags(fileBytes);
         return pinterestService.getPictureByTag(tags);
-    }
-
-
-    @GetMapping("/hello")
-    public String hello() {
-        return "Hello, World!";
     }
 }

@@ -9,8 +9,6 @@ import java.io.*;
 @RequiredArgsConstructor
 @Service
 public class WatermarkModelService {
-
-
     public Object watermarkHandler(byte[] file) throws IOException {
 
         return null;

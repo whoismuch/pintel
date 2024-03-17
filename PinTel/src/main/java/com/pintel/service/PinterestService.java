@@ -58,7 +58,6 @@ public class PinterestService {
                 }
             } catch (IOException e) {
                 logger.error("Ошибка при загрузке изображения: " + e.getMessage());
-                throw e;
             }
         }
         return resultPic;
