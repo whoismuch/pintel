@@ -23,12 +23,11 @@ public class TgUser {
     String username;
 
     @Column
-    String name;
-
-    @NonNull
-    @Column
     String chatId;
 
     @Column
-    String lastMessage;
+    String selectionType;
+
+    @Column
+    String lastCommand;
 }
