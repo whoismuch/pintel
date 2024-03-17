@@ -26,6 +26,10 @@ spring:
         config:
           default:
             loggerLevel: full
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 feign:
   okhttp:
     enabled: true
@@ -38,8 +42,8 @@ pinterest:
 watermark:
   url:
 
-mean-tags:
-  url:
+meaning-tags:
+  url: http://192.168.0.19:8000
 
 color-tags:
   url:

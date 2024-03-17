@@ -1,4 +1,4 @@
-package com.pintel.service;
+package com.pintel.service.client;
 
 import com.pintel.config.FeignConfig;
 import com.pintel.dto.ImageResultDto;

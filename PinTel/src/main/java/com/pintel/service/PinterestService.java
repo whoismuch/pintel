@@ -1,9 +1,9 @@
 package com.pintel.service;
 
-import com.pintel.PinTelBot;
 import com.pintel.dto.ImageResultDto;
 import com.pintel.dto.SearchResultDto;
 import com.pintel.properties.PinterestProperties;
+import com.pintel.service.client.PinterestClient;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,6 @@ public class PinterestService {
     private final PinterestProperties pinterestProperties;
 
     public byte[] getPictureByTag(String world) throws IOException {
-
 
         SearchResultDto response = pinterestClient.getImages(pinterestProperties.getApiKey(),
                 pinterestProperties.getEngine(), world);
@@ -59,6 +58,7 @@ public class PinterestService {
                 }
             } catch (IOException e) {
                 logger.error("Ошибка при загрузке изображения: " + e.getMessage());
+                throw e;
             }
         }
         return resultPic;
