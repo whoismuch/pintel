@@ -1,5 +1,8 @@
 package com.pintel;
 
+import com.pintel.constants.BotCommandEnum;
+import com.pintel.constants.BotMessageEnum;
+import com.pintel.exception.CommandNotFoundException;
 import com.pintel.handler.CallbackQueryHandler;
 import com.pintel.handler.MessageHandler;
 import lombok.AccessLevel;
@@ -11,9 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
-import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.starter.SpringWebhookBot;
 
 @Getter
@@ -44,11 +45,13 @@ public class PinTelBot extends SpringWebhookBot {
             logger.info("Webhook update was received");
             return handleUpdate(update);
         } catch (IllegalArgumentException e) {
-            logger.warn(e.getMessage());
-            return new SendMessage(update.getMessage().getChatId().toString(), "Illegal message");
+            logger.warn("Illegal message received: " + e.getMessage());
+            return new SendMessage(update.getMessage().getChatId().toString(),
+                    BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE.getText());
         } catch (Exception e) {
             logger.error(e.getMessage());
-            return new SendMessage(update.getMessage().getChatId().toString(), e.getMessage());
+            return new SendMessage(update.getMessage().getChatId().toString(),
+                    BotMessageEnum.EXCEPTION_STH_GOES_WRONG_MESSAGE.getText() + ": " + e.getMessage());
         }
     }
 
@@ -60,7 +63,7 @@ public class PinTelBot extends SpringWebhookBot {
             Message message = update.getMessage();
             logger.info(update.getMessage().toString());
             if (message != null) {
-                return messageHandler.answerMessage(update.getMessage());
+                return messageHandler.answerMessage(this, update.getMessage());
             }
         }
         return null;

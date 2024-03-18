@@ -26,8 +26,8 @@ public class WebhookController {
         return bot.onWebhookUpdateReceived(update);
     }
 
-    @GetMapping("/hello")
-    public String hello() {
+    @GetMapping("/ping")
+    public String ping() {
         return "Hello, World!";
     }
 
