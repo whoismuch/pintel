@@ -28,4 +28,8 @@ public class ImageToMeaningTagsService {
            throw new AnotherServiceException(e.getMessage());
         }
     }
+
+    public String imageToTagsMock(byte[] file){
+        return "coffee";
+    }
 }

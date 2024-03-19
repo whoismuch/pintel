@@ -35,7 +35,13 @@ public class WebhookController {
     @SneakyThrows
     public Object getTagsFromPic(@RequestBody MultipartFile file) {
         byte[] fileBytes = file.getBytes();
-        String tags = imageToMeaningTagsService.imageToTags(fileBytes);
+        String tags = imageToMeaningTagsService.imageToTagsMock(fileBytes);
+        return pinterestService.getPictureByTag(tags);
+    }
+
+    @PostMapping("/test/tag/words")
+    @SneakyThrows
+    public Object getPicByTag(@RequestParam(value = "tags") String tags) {
         return pinterestService.getPictureByTag(tags);
     }
 }
