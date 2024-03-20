@@ -65,6 +65,7 @@ public class MessageHandler {
             }
             case HELP -> new SendMessage(chatId, BotMessageEnum.HELP_MESSAGE.getText());
             case MAKE_SELECTION -> messageUtils.chooseSelectionType(chatId);
+            default -> null;
         };
         saveLastCommand(commandEnum, userId);
         return message;
@@ -76,23 +77,9 @@ public class MessageHandler {
         }
     }
 
-
-    private SendMessage chooseSelectionType(String chatId) {
-        List<String> types = List.of(BotMessageEnum.CHOOSE_TYPE_CONCEPT.getText(), BotMessageEnum.CHOOSE_TYPE_COLOR.getText());
-        SendMessage sendMessage = getSendMessage(chatId, BotMessageEnum.CHOOSE_SELECTION_TYPE);
-//        sendMessage.enableMarkdown(true);
-        sendMessage.setReplyMarkup(replyKeyboardMaker.getReplyMessageButtons(types));
-        return sendMessage;
-    }
-
     private SendMessage processMakeSelection(PinTelBot bot, Message message, String inputText, Long userId, String chatId) throws TelegramApiException {
-         if (inputText != null && selectionTypes.contains(inputText)) {
-            userService.saveSelectionType(userId, inputText);
-            SendMessage answerMessage = getSendMessage(chatId, BotMessageEnum.LOAD_IMAGE);
-            answerMessage.setReplyMarkup(null);
-            return answerMessage;
-        } else if (inputText != null && userService.getSelectionType(userId) == null) {
-            return chooseSelectionType(chatId);
+        if (inputText != null && userService.getSelectionType(userId) == null) {
+            return messageUtils.chooseSelectionType(chatId);
         } else if (message.hasPhoto()) {
             List<PhotoSize> photo = message.getPhoto();
             // todo: get selection of images from service
@@ -105,7 +92,7 @@ public class MessageHandler {
             userService.saveSelectionType(userId, null);
             return new SendMessage();
         }
-        return getSendMessage(chatId, BotMessageEnum.LOAD_IMAGE);
+        return messageUtils.getLoadImageMessage(chatId, userService.getSelectionType(userId));
     }
 
     private SendMessage getSendMessage(String chatId, BotMessageEnum messageEnum) {
