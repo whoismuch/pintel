@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "TgUser")
+@Table(name = "tg_user")
 @NoArgsConstructor
 @AllArgsConstructor
 public class TgUser {
@@ -23,12 +23,11 @@ public class TgUser {
     String username;
 
     @Column
-    String name;
-
-    @NonNull
-    @Column
     String chatId;
 
     @Column
-    String lastMessage;
+    String selectionType;
+
+    @Column
+    String lastCommand;
 }

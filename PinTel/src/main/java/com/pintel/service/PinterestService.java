@@ -27,7 +27,7 @@ public class PinterestService {
 
     private final PinterestProperties pinterestProperties;
 
-    public byte[] getPictureByTag(String world) throws IOException {
+    public byte[] getPictureByTag(String world) {
 
         SearchResultDto response = pinterestClient.getImages(pinterestProperties.getApiKey(),
                 pinterestProperties.getEngine(), world);
