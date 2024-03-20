@@ -4,8 +4,9 @@ import com.pintel.PinTelBot;
 import com.pintel.constants.BotCommandEnum;
 import com.pintel.constants.BotMessageEnum;
 import com.pintel.exception.CommandNotFoundException;
-import com.pintel.keyboards.ReplyKeyboardMaker;
+import com.pintel.keyboards.InlineKeyboardMaker;
 import com.pintel.service.TgUserService;
+import com.pintel.util.MessageUtils;
 import jakarta.annotation.Nullable;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +32,7 @@ import java.util.List;
 public class MessageHandler {
     final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     final TgUserService userService;
-    @Autowired
-    ReplyKeyboardMaker replyKeyboardMaker;
-    final List<String> selectionTypes = List.of(BotMessageEnum.CHOOSE_TYPE_CONCEPT.getText().toLowerCase(),
-                                          BotMessageEnum.CHOOSE_TYPE_COLOR.getText().toLowerCase());
+    final MessageUtils messageUtils;
 
     public BotApiMethod<?> answerMessage(PinTelBot bot, Message message) {
         String chatId = message.getChatId().toString();
@@ -47,11 +45,11 @@ public class MessageHandler {
             } else if (userService.getLastCommand(userId).equals(BotCommandEnum.MAKE_SELECTION.getCommandName())) {
                 return processMakeSelection(bot, message, inputText, userId, chatId);
             } else {
-                return getSendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE);
+                return messageUtils.getSendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE);
             }
         } catch (CommandNotFoundException | TelegramApiException e) {
             logger.warn("Illegal message: " + e.getMessage());
-            return getSendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE);
+            return messageUtils.getSendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE);
         }
     }
 
@@ -59,31 +57,18 @@ public class MessageHandler {
         SendMessage message = switch(commandEnum) {
             case START -> {
                 userService.addUser(userId, null, chatId, BotCommandEnum.START.getCommandName());
-                yield getSendMessage(chatId, BotMessageEnum.HELP_MESSAGE);
+                yield messageUtils.getSendMessage(chatId, BotMessageEnum.HELP_MESSAGE);
             }
             case HELP -> new SendMessage(chatId, BotMessageEnum.HELP_MESSAGE.getText());
-            case MAKE_SELECTION -> chooseSelectionType(chatId);
+            case MAKE_SELECTION -> messageUtils.chooseSelectionType(chatId);
         };
         saveLastCommand(commandEnum, userId);
         return message;
     }
 
-    private SendMessage chooseSelectionType(String chatId) {
-        List<String> types = List.of(BotMessageEnum.CHOOSE_TYPE_CONCEPT.getText(), BotMessageEnum.CHOOSE_TYPE_COLOR.getText());
-        SendMessage sendMessage = getSendMessage(chatId, BotMessageEnum.CHOOSE_SELECTION_TYPE);
-//        sendMessage.enableMarkdown(true);
-        sendMessage.setReplyMarkup(replyKeyboardMaker.getReplyMessageButtons(types));
-        return sendMessage;
-    }
-
     private SendMessage processMakeSelection(PinTelBot bot, Message message, String inputText, Long userId, String chatId) throws TelegramApiException {
-         if (inputText != null && selectionTypes.contains(inputText)) {
-            userService.saveSelectionType(userId, inputText);
-            SendMessage answerMessage = getSendMessage(chatId, BotMessageEnum.LOAD_IMAGE);
-            answerMessage.setReplyMarkup(null);
-            return answerMessage;
-        } else if (inputText != null && userService.getSelectionType(userId) == null) {
-            return chooseSelectionType(chatId);
+         if (inputText != null && userService.getSelectionType(userId) == null) {
+            return messageUtils.chooseSelectionType(chatId);
         } else if (message.hasPhoto()) {
             List<PhotoSize> photo = message.getPhoto();
             // todo: get selection of images from service
@@ -96,11 +81,7 @@ public class MessageHandler {
             userService.saveSelectionType(userId, null);
             return new SendMessage();
         }
-        return getSendMessage(chatId, BotMessageEnum.LOAD_IMAGE);
-    }
-
-    private SendMessage getSendMessage(String chatId, BotMessageEnum messageEnum) {
-        return new SendMessage(chatId, messageEnum.getText());
+        return messageUtils.getLoadImageMessage(chatId, userService.getSelectionType(userId));
     }
 
     private void saveLastCommand(@Nullable BotCommandEnum commandEnum, Long userId) {
