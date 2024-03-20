@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "TgUser")
+@Table(name = "tg_user")
 @NoArgsConstructor
 @AllArgsConstructor
 public class TgUser {

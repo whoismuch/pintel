@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -27,6 +26,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Component
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -75,9 +75,9 @@ public class MessageHandler {
     }
 
     public void processCommand(BotCommandEnum commandEnum, Map<String, ?> chatMessageMap) {
-       switch(commandEnum) {
-            case SEND_NEWSLETTER -> sendToAllUsers(chatMessageMap);
-       };
+        if (Objects.requireNonNull(commandEnum) == BotCommandEnum.SEND_NEWSLETTER) {
+            sendToAllUsers(chatMessageMap);
+        }
     }
 
 
@@ -126,10 +126,7 @@ public class MessageHandler {
         PinTelBot bot = context.getBean(PinTelBot.class);
 
         chatIdMessageMap
-                .entrySet()
-                .forEach(um -> {
-                    String chatId = um.getKey();
-                    Object message = um.getValue();
+                .forEach((chatId, message) -> {
                     try {
                         bot.execute(new SendMessage(chatId, message.toString()));
                     } catch (TelegramApiException e) {

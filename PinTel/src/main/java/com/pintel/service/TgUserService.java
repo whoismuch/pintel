@@ -4,10 +4,9 @@ import com.pintel.exception.TgUserNotFoundException;
 import com.pintel.model.TgUser;
 import com.pintel.repository.TgUserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -64,4 +63,9 @@ public class TgUserService {
             throw new TgUserNotFoundException(userId.toString());
         }
     }
+
+    public List<TgUser> getTgUsersByUsersId(List<Long> userIds) {
+        return userRepository.findByUserIdIn(userIds);
+    }
+
 }
