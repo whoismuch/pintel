@@ -7,7 +7,10 @@ import lombok.RequiredArgsConstructor;
 public enum BotCommandEnum {
     START("start"),
     HELP("help"),
-    MAKE_SELECTION("make_selection");
+    MAKE_SELECTION("make_selection"),
+
+    SEND_NEWSLETTER("send_newsletter");
+
     private final String commandName;
 
     public String getCommandName() {

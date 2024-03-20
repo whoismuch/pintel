@@ -13,6 +13,8 @@ import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -24,6 +26,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -31,10 +34,12 @@ import java.util.List;
 public class MessageHandler {
     final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     final TgUserService userService;
+
     @Autowired
     ReplyKeyboardMaker replyKeyboardMaker;
-    final List<String> selectionTypes = List.of(BotMessageEnum.CHOOSE_TYPE_CONCEPT.getText().toLowerCase(),
-                                          BotMessageEnum.CHOOSE_TYPE_COLOR.getText().toLowerCase());
+
+    final ApplicationContext context;
+    final List<String> selectionTypes = List.of(BotMessageEnum.CHOOSE_TYPE_CONCEPT.getText().toLowerCase(), BotMessageEnum.CHOOSE_TYPE_COLOR.getText().toLowerCase());
 
     public BotApiMethod<?> answerMessage(PinTelBot bot, Message message) {
         String chatId = message.getChatId().toString();
@@ -63,10 +68,18 @@ public class MessageHandler {
             }
             case HELP -> new SendMessage(chatId, BotMessageEnum.HELP_MESSAGE.getText());
             case MAKE_SELECTION -> chooseSelectionType(chatId);
+            default -> null;
         };
         saveLastCommand(commandEnum, userId);
         return message;
     }
+
+    public void processCommand(BotCommandEnum commandEnum, Map<String, ?> chatMessageMap) {
+       switch(commandEnum) {
+            case SEND_NEWSLETTER -> sendToAllUsers(chatMessageMap);
+       };
+    }
+
 
     private SendMessage chooseSelectionType(String chatId) {
         List<String> types = List.of(BotMessageEnum.CHOOSE_TYPE_CONCEPT.getText(), BotMessageEnum.CHOOSE_TYPE_COLOR.getText());
@@ -108,5 +121,25 @@ public class MessageHandler {
             userService.saveLastCommand(userId, commandEnum.getCommandName());
         }
     }
+
+    private void sendToAllUsers(Map<String, ?> chatIdMessageMap) {
+        PinTelBot bot = context.getBean(PinTelBot.class);
+
+        chatIdMessageMap
+                .entrySet()
+                .forEach(um -> {
+                    String chatId = um.getKey();
+                    Object message = um.getValue();
+                    try {
+                        bot.execute(new SendMessage(chatId, message.toString()));
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
+
+
+
+
 
 }

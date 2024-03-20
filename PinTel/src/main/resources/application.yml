@@ -3,7 +3,7 @@ server:
 
 telegram:
   api-url: https://api.telegram.org/
-  webhook-path: https://098e-31-134-188-180.ngrok-free.app
+  webhook-path: https://3e7f-77-234-196-15.ngrok-free.app
   bot-name: PinTelBot
   bot-token: 6940539957:AAFTK2PcKutWgb5QCD7jzXlnCmfRk4rO14Y
 

@@ -2,17 +2,18 @@ package com.pintel.service;
 
 import com.pintel.exception.TgUserNotFoundException;
 import com.pintel.model.TgUser;
-import com.pintel.model.repository.TgUserRepository;
+import com.pintel.repository.TgUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-@Component
+@Service
 @RequiredArgsConstructor
 public class TgUserService {
-    @Autowired
+
     private final TgUserRepository userRepository;
 
     public void addUser(Long userId, String username, String chatId, String lastMessage) {

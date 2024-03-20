@@ -1,16 +1,16 @@
 package com.pintel;
 
-import com.pintel.constants.BotCommandEnum;
 import com.pintel.constants.BotMessageEnum;
-import com.pintel.exception.CommandNotFoundException;
 import com.pintel.handler.CallbackQueryHandler;
 import com.pintel.handler.MessageHandler;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import com.pintel.service.TgUserService;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
@@ -68,6 +68,11 @@ public class PinTelBot extends SpringWebhookBot {
         }
         return null;
     }
+
+
+
+
+
 
 }
 
