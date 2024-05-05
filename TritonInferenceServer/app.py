@@ -5,11 +5,12 @@ from flask import Flask, request
 import numpy as np
 import tritonclient.grpc as tritongrpcclient
 
+import io
 import logging
 from dataclasses import dataclass
+
 from tags import choose_tags
-import io
-# app = Flask('PinTel')
+
 
 @dataclass
 class InferenceConfig():
@@ -20,12 +21,22 @@ class InferenceConfig():
     flask_port=8000
     flask_debug=True
 
-
 class PinTelInference(Flask):
     def __init__(self) -> None:
         super().__init__('PinTel')
-
         self.logger = logging.getLogger('PinTelInference')
+        
+        logFormatter = logging.Formatter("%(asctime)s [%(name)-15.15s] [%(levelname)-5.5s] %(message)s")
+        fileHandler = logging.FileHandler("{0}/{1}.log".format('./', 'flask_log'))
+        consoleHandler = logging.StreamHandler()
+        
+        fileHandler.setFormatter(logFormatter)
+        consoleHandler.setFormatter(logFormatter)
+        logging.basicConfig(
+            level=logging.INFO,
+            handlers=[fileHandler, consoleHandler]
+        )
+
         self.triton_config = InferenceConfig()
         self.connected = False
         self.add_url_rule('/img', view_func=self.request, methods=['POST'])
@@ -37,6 +48,7 @@ class PinTelInference(Flask):
             port=self.triton_config.flask_port,
             debug=self.triton_config.flask_debug
         )
+        self.logger.info('Stopped inference')
         
     def __connect_triton(self):
         try:
@@ -45,6 +57,7 @@ class PinTelInference(Flask):
                 )
             self.connected=True
             self.__health_check()
+            self.logger.info('Successfully connected')
         except Exception as e:
             self.logger.fatal("Context creation failed: " + str(e))
             self.connected=False
@@ -63,12 +76,11 @@ class PinTelInference(Flask):
         if self.connected:
             img_arr = np.frombuffer(data.getbuffer(), dtype=np.uint8)
             img_arr = np.expand_dims(img_arr.reshape(-1), 0)
-        
+            self.logger.info('Requested image with shape {}'.format(img_arr.shape))
+            
             # Готовим входы и выходы
-
             inputs = tritongrpcclient.InferInput('image', img_arr.shape, "UINT8")
             outputs = tritongrpcclient.InferRequestedOutput('tags')
-
             inputs.set_data_from_numpy(img_arr)
             results = self.triton_client.infer(
                 model_name=self.triton_config.model_name, inputs=[inputs], outputs=[outputs]
@@ -78,20 +90,12 @@ class PinTelInference(Flask):
             return tags
         else:
             return choose_tags()
-
     
-    def __choose_random_tags(self):
-        tags = ['white', 'dog']
-        return create_json_file(tags)
-    
-    # @self.route('/img', methods=['POST'])
     def request(self):
-        # Получаем файл из мультипарт запроса
         uploaded_file = request.files['file']
-        # Отправляем на инференс
         tags = self.infer(uploaded_file)
+        self.logger.info('Processed tags: {}'.format(tags))
         return tags
-
 
 def create_json_file(tags_str: list[str]):
     """
@@ -106,4 +110,3 @@ def create_json_file(tags_str: list[str]):
 if __name__ == '__main__':
     inferenceClient = PinTelInference()
     inferenceClient.start()
-    # app.run(host='192.168.0.17',port=8000, debug=True)
