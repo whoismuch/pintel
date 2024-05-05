@@ -1,0 +1,17 @@
+backend: "python"
+input [
+    {
+        name: "image"
+        data_type: TYPE_UINT8
+        dims: [ 1, -1 ]
+    }
+]
+output [
+    {
+        name: "tags"
+        data_type: TYPE_STRING
+        dims: [ 1, -1]
+    }
+]
+
+instance_group [{ kind: KIND_CPU }]

@@ -1,0 +1,28 @@
+name: "postprocess"
+backend: "python"
+input [
+{
+    name: "COLORS"
+    data_type: TYPE_STRING
+    dims: [ 1, -1 ]
+},
+{
+    name: "DETECTION_LOGITS"
+    data_type: TYPE_FP32
+    dims: [1, 100, 92]
+}
+]
+
+output [
+{
+    name: "TAGS"
+    data_type: TYPE_STRING
+    dims: [ 1, -1]
+}
+]
+
+instance_group [{ kind: KIND_CPU }]
+parameters: {
+        key: "threshold",
+        value: {string_value: "0.1"}
+    }
