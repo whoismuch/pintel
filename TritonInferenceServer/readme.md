@@ -25,11 +25,11 @@ sudo docker build -t tritonserver_pintel:1 ./triton_build/
 Запуск контейнера
 ```bash
 sudo docker run -d \
---gpus=all \                                # подключение GPU
--p=8100:8000 -p=8101:8001 -p=8102:8002 \    # Проброс портов
---shm-size=1g \                             # Выделение памяти для работы Triton
--v=./model_repository:/models \             # Проброс томов
-tritonserver_pintel:1                       # Название контейнера
-tritonserver --model-repository=/models     # Командная строка с запуском сервера
+--gpus=all \
+-p=8100:8000 -p=8101:8001 -p=8102:8002 \
+--shm-size=1g \
+-v=./model_repository:/models \
+tritonserver_pintel:1 \
+tritonserver --model-repository=/models
 ```
 

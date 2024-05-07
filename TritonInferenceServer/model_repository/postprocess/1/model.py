@@ -29,7 +29,7 @@ def post_process(out_logits, threshold=0.1):
         results.append({"scores": score, "labels": label})
     tag_list = results[0]['labels'].tolist()
     if 'N/A' in tag_list: tag_list.remove('N/A')
-    return list(set([tag_list]))
+    return list(set(tag_list))
 
 class TritonPythonModel:
     """Your Python model must use the same class name. Every Python model

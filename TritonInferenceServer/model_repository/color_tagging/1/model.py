@@ -90,7 +90,7 @@ class TritonPythonModel:
 
             color_clustering_model.fit(img)
             colors = np.asarray(color_clustering_model.cluster_centers_, dtype='uint8')
-            color_names = [find_closest_color(color) for color in colors]
+            color_names = list(set([find_closest_color(color) for color in colors]))
             # Create InferenceResponse
 
             output_tensors = [
