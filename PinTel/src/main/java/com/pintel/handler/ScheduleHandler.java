@@ -51,9 +51,9 @@ public class ScheduleHandler {
                 .collect(HashMap::new,
                         (m, cT) -> m.put(cT.getKey(), cT.getValue()
                                 .stream()
-                                .map(pinterestService::getPictureByTag)
+                                .map(pinterestService::getPictureBytesByTags)
                                 .collect(Collectors.toList())), HashMap::putAll);
-
+//todo посмотри может тут имеет смысл ссылкой кидать картинку, типо вот как я делаю в MessageHandler - .photo(new InputFile(picLink))
         messageHandler.processCommand(BotCommandEnum.SEND_NEWSLETTER, chatRecommendedImage);
     }
 }

@@ -11,8 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.io.IOException;
-
 @RestController
 @AllArgsConstructor
 public class WebhookController {
@@ -36,12 +34,12 @@ public class WebhookController {
     public Object getTagsFromPic(@RequestBody MultipartFile file) {
         byte[] fileBytes = file.getBytes();
         String tags = imageToMeaningTagsService.imageToTagsMock(fileBytes);
-        return pinterestService.getPictureByTag(tags);
+        return pinterestService.getPictureLinkByTag(tags);
     }
 
     @PostMapping("/test/tag/words")
     @SneakyThrows
     public Object getPicByTag(@RequestParam(value = "tags") String tags) {
-        return pinterestService.getPictureByTag(tags);
+        return pinterestService.getPictureLinkByTag(tags);
     }
 }

@@ -5,6 +5,7 @@ import com.pintel.dto.SearchResultDto;
 import com.pintel.properties.PinterestProperties;
 import com.pintel.service.client.PinterestClient;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,13 +28,13 @@ public class PinterestService {
 
     private final PinterestProperties pinterestProperties;
 
-    public byte[] getPictureByTag(String world) {
+    private HttpURLConnection urlConnectionOkPic;
 
+    public String getPictureLinkByTag(String world) {
         SearchResultDto response = pinterestClient.getImages(pinterestProperties.getApiKey(),
                 pinterestProperties.getEngine(), world);
         logger.info(response.toString());
-        byte[] resultPic = null;
-
+        String resultUrl = "";
         for (ImageResultDto imageResult : response.getImagesResults()) {
             try {
                 URL url = new URL(imageResult.getOriginal());
@@ -48,11 +49,9 @@ public class PinterestService {
                 int responseCode = connection.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     logger.info("Изображение доступно");
-                    var pic = getPicFromLink(connection);
-                    if (pic.length != 0) {
-                        resultPic = pic;
-                        break;
-                    }
+                    resultUrl = url.toString();
+                    urlConnectionOkPic = connection;
+                    break;
                 } else {
                     logger.info("Изображение недоступно");
                 }
@@ -60,12 +59,13 @@ public class PinterestService {
                 logger.error("Ошибка при загрузке изображения: " + e.getMessage());
             }
         }
-        return resultPic;
+        return resultUrl;
     }
 
-    private byte[] getPicFromLink(HttpURLConnection connection) throws IOException {
-
-        InputStream inputStream = connection.getInputStream();
+    @SneakyThrows
+    public byte[] getPictureBytesByTags(String words) {
+        getPictureLinkByTag(words);
+        InputStream inputStream = urlConnectionOkPic.getInputStream();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         byte[] buffer = new byte[1024];

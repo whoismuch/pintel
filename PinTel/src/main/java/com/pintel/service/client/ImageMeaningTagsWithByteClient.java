@@ -14,7 +14,7 @@ import java.net.URISyntaxException;
 // поэтому пришлось заюзать эту залупу
 //если у кого то есть желание может переделать под феин клиент
 @Component
-public class ImageMeaningTagsClient {
+public class ImageMeaningTagsWithByteClient {
 
     @Value("${meaning-tags.url}")
     private String path;
@@ -40,3 +40,5 @@ public class ImageMeaningTagsClient {
         return restTemplate.postForObject(uri, map, String.class);
     }
 }
+
+

@@ -64,11 +64,5 @@ public class PinTelBot extends SpringWebhookBot {
         }
         return null;
     }
-
-
-
-
-
-
 }
 

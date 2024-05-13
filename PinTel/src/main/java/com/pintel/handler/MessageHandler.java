@@ -3,9 +3,13 @@ package com.pintel.handler;
 import com.pintel.PinTelBot;
 import com.pintel.constants.BotCommandEnum;
 import com.pintel.constants.BotMessageEnum;
+import com.pintel.constants.ButtonTextEnum;
 import com.pintel.exception.CommandNotFoundException;
-import com.pintel.keyboards.InlineKeyboardMaker;
+import com.pintel.properties.TelegramProperties;
+import com.pintel.service.PinterestService;
 import com.pintel.service.TgUserService;
+import com.pintel.service.client.ImageColorTagsClient;
+import com.pintel.service.client.ImageMeaningTagsWithLinkClient;
 import com.pintel.util.MessageUtils;
 import jakarta.annotation.Nullable;
 import lombok.AccessLevel;
@@ -13,10 +17,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
@@ -24,7 +28,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,10 +37,16 @@ import java.util.Objects;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
 public class MessageHandler {
+    final static int BEST_QUALITY_PIC = 3;
+
     final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     final TgUserService userService;
     final MessageUtils messageUtils;
     final ApplicationContext context;
+    final TelegramProperties telegramProperties;
+    final ImageMeaningTagsWithLinkClient imageMeaningTagsWithLinkClient;
+    final PinterestService pinterestService;
+    final ImageColorTagsClient imageColorTagsClient;
 
     public BotApiMethod<?> answerMessage(PinTelBot bot, Message message) {
         String chatId = message.getChatId().toString();
@@ -54,11 +64,13 @@ public class MessageHandler {
         } catch (CommandNotFoundException | TelegramApiException e) {
             logger.warn("Illegal message: " + e.getMessage());
             return messageUtils.getSendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     private SendMessage processCommand(BotCommandEnum commandEnum, Long userId, String chatId) {
-        SendMessage message = switch(commandEnum) {
+        SendMessage message = switch (commandEnum) {
             case START -> {
                 userService.addUser(userId, null, chatId, BotCommandEnum.START.getCommandName());
                 yield messageUtils.getSendMessage(chatId, BotMessageEnum.HELP_MESSAGE);
@@ -77,15 +89,30 @@ public class MessageHandler {
         }
     }
 
-    private SendMessage processMakeSelection(PinTelBot bot, Message message, String inputText, Long userId, String chatId) throws TelegramApiException {
+    private SendMessage processMakeSelection(PinTelBot bot, Message message, String inputText, Long userId, String chatId) throws TelegramApiException, IOException {
         if (inputText != null && userService.getSelectionType(userId) == null) {
             return messageUtils.chooseSelectionType(chatId);
         } else if (message.hasPhoto()) {
-            List<PhotoSize> photo = message.getPhoto();
-            // todo: get selection of images from service
+            List<PhotoSize> photos = message.getPhoto();
+
+            String filePath = bot.execute(new GetFile(photos.get(photos.size() - 1).getFileId())).getFilePath();
+            String urlFilePath = telegramProperties.getApiUrl() + "file/bot" + telegramProperties.getBotToken() + "/" + filePath;
+            List<String> tags = List.of();
+            if (userService.getSelectionType(userId).equals(ButtonTextEnum.SELECTION_BY_COLOR.getText())) {
+                //tags = imageColorTagsClient.getColorTagsByPic(urlFilePath);
+                tags = List.of("nikita the best");
+            } else {
+                tags = List.of("kopatich");
+                // tags = imageMeaningTagsWithLinkClient.getMeaningTagsByPic(urlFilePath);
+            }
+            if (tags.isEmpty()) {
+                return new SendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE.getText());
+            }
+
+            var picLink = pinterestService.getPictureLinkByTag(String.join(" ", tags));
             SendPhoto sendPhoto = SendPhoto.builder()
                     .chatId(chatId)
-                    .photo(new InputFile(new File("src/main/resources/img.png")))
+                    .photo(new InputFile(picLink))
                     .caption(BotMessageEnum.RESULT_SELECTION.getText())
                     .build();
             bot.execute(sendPhoto);
@@ -117,9 +144,4 @@ public class MessageHandler {
                     }
                 });
     }
-
-
-
-
-
 }
