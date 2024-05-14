@@ -13,6 +13,7 @@ import java.net.URISyntaxException;
 //Херня под названием феин клиент не могла передать файл в виде байтов,
 // поэтому пришлось заюзать эту залупу
 //если у кого то есть желание может переделать под феин клиент
+@Deprecated
 @Component
 public class ImageMeaningTagsWithByteClient {
 

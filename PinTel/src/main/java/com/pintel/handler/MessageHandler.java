@@ -90,36 +90,41 @@ public class MessageHandler {
     }
 
     private SendMessage processMakeSelection(PinTelBot bot, Message message, String inputText, Long userId, String chatId) throws TelegramApiException, IOException {
-        if (inputText != null && userService.getSelectionType(userId) == null) {
-            return messageUtils.chooseSelectionType(chatId);
-        } else if (message.hasPhoto()) {
-            List<PhotoSize> photos = message.getPhoto();
+        try {
+            if (inputText != null && userService.getSelectionType(userId) == null) {
+                return messageUtils.chooseSelectionType(chatId);
+            } else if (message.hasPhoto()) {
+                List<PhotoSize> photos = message.getPhoto();
 
-            String filePath = bot.execute(new GetFile(photos.get(photos.size() - 1).getFileId())).getFilePath();
-            String urlFilePath = telegramProperties.getApiUrl() + "file/bot" + telegramProperties.getBotToken() + "/" + filePath;
-            List<String> tags = List.of();
-            if (userService.getSelectionType(userId).equals(ButtonTextEnum.SELECTION_BY_COLOR.getText())) {
-                //tags = imageColorTagsClient.getColorTagsByPic(urlFilePath);
-                tags = List.of("nikita the best");
-            } else {
-                tags = List.of("kopatich");
-                // tags = imageMeaningTagsWithLinkClient.getMeaningTagsByPic(urlFilePath);
-            }
-            if (tags.isEmpty()) {
-                return new SendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE.getText());
-            }
+                String filePath = bot.execute(new GetFile(photos.get(photos.size() - 1).getFileId())).getFilePath();
+                String urlFilePath = telegramProperties.getApiUrl() + "file/bot" + telegramProperties.getBotToken() + "/" + filePath;
+                List<String> tags = List.of();
+                if (userService.getSelectionType(userId).equals(ButtonTextEnum.SELECTION_BY_COLOR.getText())) {
+                    //tags = imageColorTagsClient.getColorTagsByPic(urlFilePath);
+                    tags = List.of("nikita the best");
+                } else {
+                    tags = List.of("kopatich");
+                    // tags = imageMeaningTagsWithLinkClient.getMeaningTagsByPic(urlFilePath);
+                }
+                if (tags.isEmpty()) {
+                    return new SendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE.getText());
+                }
 
-            var picLink = pinterestService.getPictureLinkByTag(String.join(" ", tags));
-            SendPhoto sendPhoto = SendPhoto.builder()
-                    .chatId(chatId)
-                    .photo(new InputFile(picLink))
-                    .caption(BotMessageEnum.RESULT_SELECTION.getText())
-                    .build();
-            bot.execute(sendPhoto);
-            userService.saveSelectionType(userId, null);
-            return new SendMessage();
+                var picLink = pinterestService.getPictureLinkByTag(String.join(" ", tags));
+                SendPhoto sendPhoto = SendPhoto.builder()
+                        .chatId(chatId)
+                        .photo(new InputFile(picLink))
+                        .caption(BotMessageEnum.RESULT_SELECTION.getText())
+                        .build();
+                bot.execute(sendPhoto);
+                userService.saveSelectionType(userId, null);
+                return new SendMessage();
+            }
+            return messageUtils.getLoadImageMessage(chatId, userService.getSelectionType(userId));
+        } catch (Exception e) {
+            logger.error("Error message: " + e.getMessage());
+            return messageUtils.getSendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE);
         }
-        return messageUtils.getLoadImageMessage(chatId, userService.getSelectionType(userId));
     }
 
     private SendMessage getSendMessage(String chatId, BotMessageEnum messageEnum) {
