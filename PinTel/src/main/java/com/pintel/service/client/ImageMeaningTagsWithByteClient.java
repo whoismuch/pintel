@@ -2,6 +2,7 @@ package com.pintel.service.client;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -9,19 +10,22 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+
 
 //Херня под названием феин клиент не могла передать файл в виде байтов,
 // поэтому пришлось заюзать эту залупу
 //если у кого то есть желание может переделать под феин клиент
-@Deprecated
 @Component
+@Deprecated
 public class ImageMeaningTagsWithByteClient {
 
     @Value("${meaning-tags.url}")
     private String path;
 
 
-    public String getMeaningTagsByPic(byte[] fileContents, final String filename) throws URISyntaxException {
+    public ArrayList<String> getMeaningTagsByPic(byte[] fileContents, final String filename) throws URISyntaxException {
         RestTemplate restTemplate = new RestTemplate();
         URI uri = new URI(path);
         uri = uri.resolve("/img");
@@ -38,7 +42,8 @@ public class ImageMeaningTagsWithByteClient {
 
         map.add("file", contentsAsResource);
 
-        return restTemplate.postForObject(uri, map, String.class);
+        String[] response = restTemplate.postForObject(uri, map, String[].class);
+        return new ArrayList<>(Arrays.asList(response));
     }
 }
 

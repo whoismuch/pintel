@@ -6,9 +6,12 @@ import com.pintel.constants.BotMessageEnum;
 import com.pintel.constants.ButtonTextEnum;
 import com.pintel.exception.CommandNotFoundException;
 import com.pintel.properties.TelegramProperties;
+import com.pintel.service.ImageToMeaningTagsService;
 import com.pintel.service.PinterestService;
 import com.pintel.service.TgUserService;
+import com.pintel.service.client.ImageByteTelegramClient;
 import com.pintel.service.client.ImageColorTagsClient;
+import com.pintel.service.client.ImageMeaningTagsWithByteClient;
 import com.pintel.service.client.ImageMeaningTagsWithLinkClient;
 import com.pintel.util.MessageUtils;
 import jakarta.annotation.Nullable;
@@ -29,6 +32,7 @@ import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,16 +41,13 @@ import java.util.Objects;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
 public class MessageHandler {
-    final static int BEST_QUALITY_PIC = 3;
-
     final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     final TgUserService userService;
     final MessageUtils messageUtils;
     final ApplicationContext context;
     final TelegramProperties telegramProperties;
-    final ImageMeaningTagsWithLinkClient imageMeaningTagsWithLinkClient;
+    final ImageToMeaningTagsService imageToMeaningTagsService;
     final PinterestService pinterestService;
-    final ImageColorTagsClient imageColorTagsClient;
 
     public BotApiMethod<?> answerMessage(PinTelBot bot, Message message) {
         String chatId = message.getChatId().toString();
@@ -98,13 +99,17 @@ public class MessageHandler {
 
                 String filePath = bot.execute(new GetFile(photos.get(photos.size() - 1).getFileId())).getFilePath();
                 String urlFilePath = telegramProperties.getApiUrl() + "file/bot" + telegramProperties.getBotToken() + "/" + filePath;
+
+                logger.info(urlFilePath);
                 List<String> tags = List.of();
                 if (userService.getSelectionType(userId).equals(ButtonTextEnum.SELECTION_BY_COLOR.getText())) {
-                    //tags = imageColorTagsClient.getColorTagsByPic(urlFilePath);
-                    tags = List.of("nikita the best");
+                    tags = getFirstThreeElements(imageToMeaningTagsService.imageToTags(urlFilePath).getTags());
+                    //   tags = List.of("krosh");
+                    logger.info(tags.toString());
                 } else {
-                    tags = List.of("kopatich");
-                    // tags = imageMeaningTagsWithLinkClient.getMeaningTagsByPic(urlFilePath);
+                    //tags = List.of("kopatich");
+                    tags = imageToMeaningTagsService.imageToTags(urlFilePath).getTags();
+                    logger.info(tags.toString());
                 }
                 if (tags.isEmpty()) {
                     return new SendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE.getText());
@@ -148,5 +153,15 @@ public class MessageHandler {
                         throw new RuntimeException(e);
                     }
                 });
+    }
+
+    private static <T> List<T> getFirstThreeElements(List<T> list) {
+        int size = list.size();
+        if (size < 3) {
+            return new ArrayList<>(list);
+        } else {
+            int endIndex = Math.min(list.size(), 3);
+            return list.subList(0, endIndex);
+        }
     }
 }

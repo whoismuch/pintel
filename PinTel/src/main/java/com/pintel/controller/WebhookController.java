@@ -33,7 +33,7 @@ public class WebhookController {
     @SneakyThrows
     public Object getTagsFromPic(@RequestBody MultipartFile file) {
         byte[] fileBytes = file.getBytes();
-        String tags = imageToMeaningTagsService.imageToTagsMock(fileBytes);
+        String tags = imageToMeaningTagsService.imageToTags("url").toString();
         return pinterestService.getPictureLinkByTag(tags);
     }
 

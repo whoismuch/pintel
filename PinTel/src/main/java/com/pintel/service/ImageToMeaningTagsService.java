@@ -1,7 +1,9 @@
 package com.pintel.service;
 
+import com.pintel.dto.TagsResponseDto;
 import com.pintel.exception.AnotherServiceException;
 import com.pintel.service.client.ImageMeaningTagsWithByteClient;
+import com.pintel.service.client.ImageMeaningTagsWithLinkClient;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,21 +17,17 @@ import java.net.URISyntaxException;
 @Service
 public class ImageToMeaningTagsService {
 
-    private final ImageMeaningTagsWithByteClient imageMeaningTagsWithByteClient;
+    private final ImageMeaningTagsWithLinkClient imageMeaningTagsWithLinkClient;
     private Logger logger = LoggerFactory.getLogger(PinterestService.class);
 
-    public String imageToTags(byte[] file) throws AnotherServiceException {
+    public TagsResponseDto imageToTags(String url) throws AnotherServiceException {
         try {
-            String tags = imageMeaningTagsWithByteClient.getMeaningTagsByPic(file, "file");
+            var tags = imageMeaningTagsWithLinkClient.getMeaningTagsByPic(url);
             logger.info("tags received: " + tags);
             return tags;
-        } catch (RestClientException | URISyntaxException e){
+        } catch (RestClientException e){
            logger.error(e.getMessage());
            throw new AnotherServiceException(e.getMessage());
         }
-    }
-
-    public String imageToTagsMock(byte[] file){
-        return "coffee";
     }
 }
