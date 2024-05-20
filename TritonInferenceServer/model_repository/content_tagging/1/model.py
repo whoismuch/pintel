@@ -2,10 +2,10 @@ import io
 import json
 
 import numpy as np
-import skimage
+from transformers import Owlv2Processor, Owlv2ForObjectDetection
 from PIL import Image
 from io import BytesIO
-from sklearn.cluster import KMeans
+from .coco_categ import COCOCategories
 
 # triton_python_backend_utils is available in every Triton Python model. You
 # need to use this module to create inference requests and responses. It also
@@ -13,23 +13,6 @@ from sklearn.cluster import KMeans
 # and converting Triton input/output types to numpy types.
 import triton_python_backend_utils as pb_utils
 
-base_colors = {
-    'red': [255,0,0], 'blue': [0,0,255],
-    'green': [0,255,0], 'yellow': [255,255,0],
-    'orange': [255,165,0],
-    'purple': [255,0,255], 
-    'brown': [165,42,42],
-    'black': [0,0,0], 'white': [255,255,255]
-}
-mask_weight = np.array([1, 1, 1, 1, 1, 1, 1/ 0.5, 1/ 0.5, 1/ 0.5])
-
-def find_closest_color(color):
-    colors_array = np.array(list(base_colors.values()))
-    distances = np.linalg.norm(colors_array - color, axis=1)
-    distances = np.multiply(distances, mask_weight)
-    closest_color_index = np.argmin(distances)
-    closest_color_name = list(base_colors.keys())[closest_color_index]
-    return closest_color_name
 
 
 class TritonPythonModel:
@@ -56,7 +39,10 @@ class TritonPythonModel:
 
         # You must parse model_config. JSON string is not parsed here
         self.model_config = model_config = json.loads(args["model_config"])
-        self.color_clustering_model = KMeans(n_clusters = 3)
+        self.processor = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
+        self.model = Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble")
+        self.texts = list(set(COCOCategories.values()))
+        self.texts.remove('N/A')
 
     def execute(self, requests):
         """`execute` MUST be implemented in every Python model. `execute`
@@ -87,24 +73,17 @@ class TritonPythonModel:
         # Every Python backend must iterate over everyone of the requests
         # and create a pb_utils.InferenceResponse for each of them.
         for request in requests:
-            # Prepare model
-            color_clustering_model = KMeans(n_clusters = 3, n_init=10)
-            
-            # Get input
             image = pb_utils.get_input_tensor_by_name(request, "IMAGE").as_numpy()
-            image = np.array(Image.open(BytesIO(image.tobytes())), dtype=np.uint8)           
-
-            # Preprocess for color tagging 
-            image = skimage.transform.resize(image, (200,200)) * 255
-            image = image.reshape((-1,3)).astype(np.uint8)
-
-            color_clustering_model.fit(image)
-            colors = np.asarray(color_clustering_model.cluster_centers_, dtype='uint8')
-            color_names = list(set([find_closest_color(color) for color in colors]))
+            image = np.array(Image.open(BytesIO(image.tobytes())), dtype=np.uint8)
+            # Prepare model
+            inputs = self.processor(text=self.texts, images=image, return_tensors="pt")
+            outputs = self.model(**inputs)
+            results = self.processor.post_process_object_detection(outputs=outputs, target_sizes=None, threshold=0.1)
+            labels = results[0]["labels"].tolist()
+            content_names = list(set([self.texts[label] for label in labels]))
             # Create InferenceResponse
-
             output_tensors = [
-                pb_utils.Tensor("COLORS", np.array([*color_names], dtype=np.object_)),
+                pb_utils.Tensor("CONTENT", np.array([*content_names], dtype=np.object_)),
             ]
 
             inference_response = pb_utils.InferenceResponse(

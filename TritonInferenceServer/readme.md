@@ -26,10 +26,20 @@ sudo docker build -t tritonserver_pintel:1 ./triton_build/
 ```bash
 sudo docker run -d \
 --gpus=all \
--p=8100:8000 -p=8101:8001 -p=8102:8002 \
+-p=8300:8000 -p=8301:8001 -p=8302:8002 \
 --shm-size=1g \
 -v=./model_repository:/models \
 tritonserver_pintel:1 \
 tritonserver --model-repository=/models
+```
+
+```bash
+sudo docker run -d \
+--gpus=all \
+-p=8300:8000 -p=8301:8001 -p=8302:8002 \
+--shm-size=1g \
+-v=./model_repository:/models \
+tritonserver_pintel:1 \
+tritonserver --model-repository=/models --model-control-mode=explicit --load-model content_tagging --load-model color_tagging
 ```
 
