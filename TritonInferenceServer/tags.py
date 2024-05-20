@@ -20,8 +20,11 @@ BaseColors = {
 }
 ColorNames = list(BaseColors.keys())
 
-def choose_tags():
-    content_tags = [COCOCategories[random.randint(0, len(COCOCategories)-1)] for _ in range(random.randint(1, 4))]
+def choose_color_tags():
     color_tags = [ColorNames[random.randint(0, len(BaseColors)-1)] for _ in range(3)]
+    return list(set([*color_tags]))
+
+def choose_content_tags():
+    content_tags = [COCOCategories[random.randint(0, len(COCOCategories)-1)] for _ in range(random.randint(1, 4))]
     if 'N/A' in content_tags: content_tags.remove('N/A')
-    return list(set([*color_tags, *content_tags]))
+    return list(set([*content_tags]))

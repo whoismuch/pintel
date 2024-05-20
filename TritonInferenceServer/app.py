@@ -3,22 +3,25 @@ import flask
 from flask import Flask, request
 
 import numpy as np
+import cv2
 import tritonclient.grpc as tritongrpcclient
 
 import io
 import logging
+import requests
 from dataclasses import dataclass
 
-from tags import choose_tags
+from tags import choose_color_tags, choose_content_tags
 
 
 @dataclass
 class InferenceConfig():
-    model_name='image_tagging'
+    content_tagging_model_name='content_tagging'
+    color_tagging_model_name='color_tagging'
     url='ml.dtp:8101'
     verbose=False
-    flask_host='192.168.0.17'
-    flask_port=8000
+    flask_host='192.168.1.86'
+    flask_port=8600
     flask_debug=True
 
 class PinTelInference(Flask):
@@ -39,7 +42,8 @@ class PinTelInference(Flask):
 
         self.triton_config = InferenceConfig()
         self.connected = False
-        self.add_url_rule('/img', view_func=self.request, methods=['POST'])
+        self.add_url_rule('/content_tags', view_func=self.get_content_tags_by_img_link, methods=['GET'])
+        self.add_url_rule('/color_tags', view_func=self.get_color_tags_by_img_link, methods=['GET'])
     
     def start(self):
         self.__connect_triton()
@@ -69,40 +73,89 @@ class PinTelInference(Flask):
         if not self.triton_client.is_server_ready():
             self.logger.fatal("FAILED : is_server_ready")
 
-        if not self.triton_client.is_model_ready(self.triton_config.model_name):
-            self.logger.fatal("FAILED : is_model_ready for model:{0}".format(self.config.model_name))
-    
-    def infer(self, data: io.BytesIO):
+        if not self.triton_client.is_model_ready(self.triton_config.content_tagging_model_name):
+            self.logger.fatal("FAILED : is_model_ready for model:{0}".format(self.triton_config.content_tagging_model_name))
+        if not self.triton_client.is_model_ready(self.triton_config.color_tagging_model_name):
+            self.logger.fatal("FAILED : is_model_ready for model:{0}".format(self.triton_config.color_tagging_model_name))
+        
+    def infer_content_tagging_model(self, data: io.BytesIO):
         if self.connected:
             img_arr = np.frombuffer(data.getbuffer(), dtype=np.uint8)
             img_arr = np.expand_dims(img_arr.reshape(-1), 0)
             self.logger.info('Requested image with shape {}'.format(img_arr.shape))
             
             # Готовим входы и выходы
-            inputs = tritongrpcclient.InferInput('image', img_arr.shape, "UINT8")
-            outputs = tritongrpcclient.InferRequestedOutput('tags')
+            inputs = tritongrpcclient.InferInput('IMAGE', img_arr.shape, "UINT8")
+            outputs = tritongrpcclient.InferRequestedOutput('CONTENT')
             inputs.set_data_from_numpy(img_arr)
             results = self.triton_client.infer(
-                model_name=self.triton_config.model_name, inputs=[inputs], outputs=[outputs]
+                model_name=self.triton_config.content_tagging_model_name, inputs=[inputs], outputs=[outputs]
             )
-            tags = [tag.decode("utf-8") for tag in results.as_numpy("tags")]
+            tags = [tag.decode("utf-8") for tag in results.as_numpy("CONTENT")]
             tags = create_json_file(tags)
             return tags
         else:
-            return choose_tags()
+            return create_json_file(choose_content_tags())
     
-    def request(self):
-        uploaded_file = request.files['file']
-        tags = self.infer(uploaded_file)
+    def infer_color_tagging_model(self, data: io.BytesIO):
+        if self.connected:
+            img_arr = np.frombuffer(data.getbuffer(), dtype=np.uint8)
+            img_arr = np.expand_dims(img_arr.reshape(-1), 0)
+            self.logger.info('Requested image with shape {}'.format(img_arr.shape))
+            
+            # Готовим входы и выходы
+            inputs = tritongrpcclient.InferInput('IMAGE', img_arr.shape, "UINT8")
+            outputs = tritongrpcclient.InferRequestedOutput('COLORS')
+            inputs.set_data_from_numpy(img_arr)
+            results = self.triton_client.infer(
+                model_name=self.triton_config.color_tagging_model_name, inputs=[inputs], outputs=[outputs]
+            )
+            tags = [tag.decode("utf-8") for tag in results.as_numpy("COLORS")]
+            tags = create_json_file(tags)
+            return tags
+        else:
+            return create_json_file(choose_color_tags())
+
+    
+    def get_content_tags_by_img_link(self):
+        link = request.args.get('link')
+        image_bytes = self.get_bytes_by_link(link)
+        tags = self.get_content_tags_by_bytes(image_bytes)
+        
         self.logger.info('Processed tags: {}'.format(tags))
-        return tags
+        return flask.Response(tags, mimetype='application/json')
+    
+    def get_content_tags_by_img_link(self):
+        link = request.args.get('link')
+        image_bytes = self.get_bytes_by_link(link)
+        tags = self.get_content_tags_by_bytes(image_bytes)
+        
+        self.logger.info('Processed tags: {}'.format(tags))
+        return flask.Response(tags, mimetype='application/json')
+    
+    def get_color_tags_by_img_link(self):
+        link = request.args.get('link')
+        image_bytes = self.get_bytes_by_link(link)
+        tags = self.get_color_tags_by_bytes(image_bytes)
+        
+        self.logger.info('Processed tags: {}'.format(tags))
+        return flask.Response(tags, mimetype='application/json')
+
+    def get_bytes_by_link(self, link) -> bytes:
+        image_bytes = requests.get(link).content
+        return image_bytes
+
+    def get_content_tags_by_bytes(self, image_bytes) -> flask.json:
+        return self.infer_content_tagging_model(io.BytesIO(image_bytes))
+    def get_color_tags_by_bytes(self, image_bytes) -> flask.json:
+        return self.infer_color_tagging_model(io.BytesIO(image_bytes))
 
 def create_json_file(tags_str: list[str]):
     """
     :param tags_str: список тэгов после инференса
     :return: тэги в json формате
     """
-    data = {'tags': [tags_str]}
+    data = {'tags': tags_str}
     return flask.json.dumps(data)
 
 
