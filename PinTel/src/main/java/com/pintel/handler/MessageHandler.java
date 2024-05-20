@@ -5,16 +5,19 @@ import com.pintel.constants.BotCommandEnum;
 import com.pintel.constants.BotMessageEnum;
 import com.pintel.constants.ButtonTextEnum;
 import com.pintel.exception.CommandNotFoundException;
+import com.pintel.model.UserTag;
 import com.pintel.properties.TelegramProperties;
 import com.pintel.service.ImageToMeaningTagsService;
 import com.pintel.service.PinterestService;
 import com.pintel.service.TgUserService;
+import com.pintel.service.UserTagService;
 import com.pintel.service.client.ImageByteTelegramClient;
 import com.pintel.service.client.ImageColorTagsClient;
 import com.pintel.service.client.ImageMeaningTagsWithByteClient;
 import com.pintel.service.client.ImageMeaningTagsWithLinkClient;
 import com.pintel.util.MessageUtils;
 import jakarta.annotation.Nullable;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -32,10 +35,8 @@ import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.time.LocalDate;
+import java.util.*;
 
 @Component
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -48,6 +49,7 @@ public class MessageHandler {
     final TelegramProperties telegramProperties;
     final ImageToMeaningTagsService imageToMeaningTagsService;
     final PinterestService pinterestService;
+    final UserTagService userTagService;
 
     public BotApiMethod<?> answerMessage(PinTelBot bot, Message message) {
         String chatId = message.getChatId().toString();
@@ -84,7 +86,7 @@ public class MessageHandler {
         return message;
     }
 
-    public void processCommand(BotCommandEnum commandEnum, Map<String, ?> chatMessageMap) {
+    public void processCommand(BotCommandEnum commandEnum, Map<String, List<String>> chatMessageMap) {
         if (Objects.requireNonNull(commandEnum) == BotCommandEnum.SEND_NEWSLETTER) {
             sendToAllUsers(chatMessageMap);
         }
@@ -109,6 +111,19 @@ public class MessageHandler {
                 } else {
                     //tags = List.of("kopatich");
                     tags = imageToMeaningTagsService.imageToTags(urlFilePath).getTags();
+//                    tags = List.of("yellow", "potato");
+                    if (!tags.isEmpty()) {
+                        String tagForSave = (tags.get(tags.size() - 1));
+
+                        userTagService.addUserTag(UserTag
+                                .builder()
+                                .id(UUID.randomUUID())
+                                .userId(userId)
+                                .tag(tagForSave)
+                                .usageDate(LocalDate.now())// получаем тэг по содержанию
+                                .build());
+                    }
+
                     logger.info(tags.toString());
                 }
                 if (tags.isEmpty()) {
@@ -142,16 +157,23 @@ public class MessageHandler {
         }
     }
 
-    private void sendToAllUsers(Map<String, ?> chatIdMessageMap) {
+    private void sendToAllUsers(Map<String, List<String>> chatIdMessageMap) {
         PinTelBot bot = context.getBean(PinTelBot.class);
 
         chatIdMessageMap
-                .forEach((chatId, message) -> {
-                    try {
-                        bot.execute(new SendMessage(chatId, message.toString()));
-                    } catch (TelegramApiException e) {
-                        throw new RuntimeException(e);
-                    }
+                .forEach((chatId, messages) -> {
+                    messages.forEach((message) -> {
+                        try {
+                            SendPhoto sendPhoto = SendPhoto.builder()
+                                    .chatId(chatId)
+                                    .photo(new InputFile(message))
+                                    .caption(BotMessageEnum.RESULT_SELECTION.getText())
+                                    .build();
+                            bot.execute(sendPhoto);
+                        } catch (TelegramApiException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                 });
     }
 

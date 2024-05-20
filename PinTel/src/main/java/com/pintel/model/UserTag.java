@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -17,9 +18,8 @@ import java.time.LocalDate;
 public class UserTag {
 
     @Id
-    @GeneratedValue
     @Column(name = "id", nullable = false)
-    Long id;
+    UUID id;
 
     @Column(name = "user_id")
     Long userId;
