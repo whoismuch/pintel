@@ -10,10 +10,6 @@ import com.pintel.service.ImageToColorTagsService;
 import com.pintel.service.ImageToMeaningTagsService;
 import com.pintel.service.PinterestService;
 import com.pintel.service.TgUserService;
-import com.pintel.service.client.ImageByteTelegramClient;
-import com.pintel.service.client.ImageColorTagsClient;
-import com.pintel.service.client.ImageMeaningTagsWithByteClient;
-import com.pintel.service.client.ImageMeaningTagsWithLinkClient;
 import com.pintel.util.MessageUtils;
 import jakarta.annotation.Nullable;
 import lombok.AccessLevel;
@@ -78,9 +74,9 @@ public class MessageHandler {
         SendMessage message = switch (commandEnum) {
             case START -> {
                 userService.addUser(userId, null, chatId, BotCommandEnum.START.getCommandName());
-                yield messageUtils.getSendMessage(chatId, BotMessageEnum.HELP_MESSAGE);
+                yield messageUtils.getSendMessageWithSelectionKeyboard(chatId, BotMessageEnum.HELP_MESSAGE);
             }
-            case HELP -> new SendMessage(chatId, BotMessageEnum.HELP_MESSAGE.getText());
+            case HELP -> messageUtils.getSendMessageWithSelectionKeyboard(chatId, BotMessageEnum.HELP_MESSAGE);
             case MAKE_SELECTION -> messageUtils.chooseSelectionType(chatId);
             default -> null;
         };
@@ -108,10 +104,10 @@ public class MessageHandler {
                 List<String> tags = List.of();
                 if (userService.getSelectionType(userId).equals(ButtonTextEnum.SELECTION_BY_COLOR.getText())) {
                     tags = imageToColorTagsService.imageToTagsColor(urlFilePath).getTags();
-                    //   tags = List.of("krosh"); //чтобы полностью норм работало можете закоментить строку выше и на 115 строке и использовать моки на строчках 111 и 115
+                    // tags = List.of("krosh"); //чтобы полностью норм работало можете закоментить строку выше и на 115 строке и использовать моки на строчках 111 и 115
                     logger.info(tags.toString());
                 } else {
-                    //tags = List.of("kopatich");
+                    // tags = List.of("kopatich");
                     tags = imageToMeaningTagsService.imageToTags(urlFilePath).getTags();
                     logger.info(tags.toString());
                 }
@@ -131,7 +127,7 @@ public class MessageHandler {
 
                 bot.execute(sendPhoto);
                 userService.saveSelectionType(userId, null);
-                return new SendMessage();
+                return messageUtils.getOnlyKeyboardSelectionMessage();
             }
             return messageUtils.getLoadImageMessage(chatId, userService.getSelectionType(userId));
         } catch (Exception e) {
