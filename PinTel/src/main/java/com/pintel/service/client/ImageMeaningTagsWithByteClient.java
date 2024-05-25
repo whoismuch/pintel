@@ -21,7 +21,7 @@ import java.util.Arrays;
 @Deprecated
 public class ImageMeaningTagsWithByteClient {
 
-    @Value("${meaning-tags.url}")
+    @Value("${model-tags.url}")
     private String path;
 
 

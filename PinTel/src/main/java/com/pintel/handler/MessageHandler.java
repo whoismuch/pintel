@@ -6,6 +6,7 @@ import com.pintel.constants.BotMessageEnum;
 import com.pintel.constants.ButtonTextEnum;
 import com.pintel.exception.CommandNotFoundException;
 import com.pintel.properties.TelegramProperties;
+import com.pintel.service.ImageToColorTagsService;
 import com.pintel.service.ImageToMeaningTagsService;
 import com.pintel.service.PinterestService;
 import com.pintel.service.TgUserService;
@@ -48,6 +49,7 @@ public class MessageHandler {
     final TelegramProperties telegramProperties;
     final ImageToMeaningTagsService imageToMeaningTagsService;
     final PinterestService pinterestService;
+    final ImageToColorTagsService imageToColorTagsService;
 
     public BotApiMethod<?> answerMessage(PinTelBot bot, Message message) {
         String chatId = message.getChatId().toString();
@@ -100,10 +102,10 @@ public class MessageHandler {
                 String filePath = bot.execute(new GetFile(photos.get(photos.size() - 1).getFileId())).getFilePath();
                 String urlFilePath = telegramProperties.getApiUrl() + "file/bot" + telegramProperties.getBotToken() + "/" + filePath;
 
-                logger.info(urlFilePath);
+                logger.info("url from user " + urlFilePath);
                 List<String> tags = List.of();
                 if (userService.getSelectionType(userId).equals(ButtonTextEnum.SELECTION_BY_COLOR.getText())) {
-                    tags = getFirstThreeElements(imageToMeaningTagsService.imageToTags(urlFilePath).getTags());
+                    tags = imageToColorTagsService.imageToTagsColor(urlFilePath).getTags();
                     //   tags = List.of("krosh");
                     logger.info(tags.toString());
                 } else {
@@ -112,7 +114,7 @@ public class MessageHandler {
                     logger.info(tags.toString());
                 }
                 if (tags.isEmpty()) {
-                    return new SendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE.getText());
+                    return messageUtils.getSendMessage(chatId, "Простите, я не обучен такое распозновать, попробуйте другое изображение");
                 }
 
                 var picLink = pinterestService.getPictureLinkByTag(String.join(" ", tags));

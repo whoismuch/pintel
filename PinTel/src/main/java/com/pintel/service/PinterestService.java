@@ -15,6 +15,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 
 @Service
@@ -33,15 +36,26 @@ public class PinterestService {
     public String getPictureLinkByTag(String world) {
         SearchResultDto response = pinterestClient.getImages(pinterestProperties.getApiKey(),
                 pinterestProperties.getEngine(), world);
+
         logger.info(response.toString());
+
+
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < response.getImagesResults().size(); i++) {
+            indices.add(i);
+        }
+        Collections.shuffle(indices);
+
         String resultUrl = "";
-        for (ImageResultDto imageResult : response.getImagesResults()) {
+        for (int index : indices) {
+            ImageResultDto imageResult = response.getImagesResults().get(index);
+
             try {
                 URL url = new URL(imageResult.getOriginal());
                 if (!(url.toString().endsWith(".jpg") || url.toString().endsWith(".jpeg") || url.toString().endsWith(".png"))) {
                     continue;
                 }
-                logger.info(imageResult.getLink());
+                logger.info("url from yandex " + imageResult.getOriginal());
 
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
@@ -51,12 +65,14 @@ public class PinterestService {
                     logger.info("Изображение доступно");
                     resultUrl = url.toString();
                     urlConnectionOkPic = connection;
+
                     break;
                 } else {
                     logger.info("Изображение недоступно");
                 }
             } catch (IOException e) {
                 logger.error("Ошибка при загрузке изображения: " + e.getMessage());
+                getPictureLinkByTag(world);
             }
         }
         return resultUrl;

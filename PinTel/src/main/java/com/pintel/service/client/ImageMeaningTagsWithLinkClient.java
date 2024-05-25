@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 
-@FeignClient(name = "meaning-tag", url = "${meaning-tags.url}", path = "", configuration = FeignConfig.class)
+@FeignClient(name = "meaning-tag", url = "${model-tags.url}", path = "", configuration = FeignConfig.class)
 public interface ImageMeaningTagsWithLinkClient {
-    @GetMapping(value = "/img", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/tags/content", produces = MediaType.APPLICATION_JSON_VALUE)
     TagsResponseDto getMeaningTagsByPic(@RequestParam(name = "link") String link);
 }

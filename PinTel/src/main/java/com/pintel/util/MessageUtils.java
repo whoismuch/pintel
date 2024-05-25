@@ -25,6 +25,10 @@ public class MessageUtils {
         return new SendMessage(chatId, messageEnum.getText());
     }
 
+    public SendMessage getSendMessage(String chatId, String message) {
+        return new SendMessage(chatId, message);
+    }
+
     public SendMessage getLoadImageMessage(String chatId, String selectionType) {
         return new SendMessage(chatId, BotMessageEnum.LOAD_IMAGE.getText() + " " + selectionType.toLowerCase());
     }
