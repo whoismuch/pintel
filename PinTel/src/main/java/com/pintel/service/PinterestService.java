@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -39,7 +38,11 @@ public class PinterestService {
 
         logger.info(response.toString());
 
+        return getValidUrlPic(response);
+    }
 
+    @SneakyThrows
+    private String getValidUrlPic(SearchResultDto response) {
         List<Integer> indices = new ArrayList<>();
         for (int i = 0; i < response.getImagesResults().size(); i++) {
             indices.add(i);
@@ -59,20 +62,21 @@ public class PinterestService {
 
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
+                connection.setConnectTimeout(2000);
+                connection.setReadTimeout(6000);
 
-                int responseCode = connection.getResponseCode();
-                if (responseCode == HttpURLConnection.HTTP_OK) {
+                if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                     logger.info("Изображение доступно");
                     resultUrl = url.toString();
                     urlConnectionOkPic = connection;
+                    return resultUrl;
 
-                    break;
                 } else {
                     logger.info("Изображение недоступно");
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 logger.error("Ошибка при загрузке изображения: " + e.getMessage());
-                getPictureLinkByTag(world);
+                getValidUrlPic(response);
             }
         }
         return resultUrl;

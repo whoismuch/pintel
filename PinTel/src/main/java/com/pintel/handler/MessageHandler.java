@@ -33,6 +33,8 @@ import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +108,7 @@ public class MessageHandler {
                 List<String> tags = List.of();
                 if (userService.getSelectionType(userId).equals(ButtonTextEnum.SELECTION_BY_COLOR.getText())) {
                     tags = imageToColorTagsService.imageToTagsColor(urlFilePath).getTags();
-                    //   tags = List.of("krosh");
+                    //   tags = List.of("krosh"); //чтобы полностью норм работало можете закоментить строку выше и на 115 строке и использовать моки на строчках 111 и 115
                     logger.info(tags.toString());
                 } else {
                     //tags = List.of("kopatich");
@@ -118,11 +120,15 @@ public class MessageHandler {
                 }
 
                 var picLink = pinterestService.getPictureLinkByTag(String.join(" ", tags));
+                logger.info("получили ссылку");
+                InputStream stream = new URL(picLink).openStream();
+
                 SendPhoto sendPhoto = SendPhoto.builder()
                         .chatId(chatId)
-                        .photo(new InputFile(picLink))
+                        .photo(new InputFile(stream, picLink))
                         .caption(BotMessageEnum.RESULT_SELECTION.getText())
                         .build();
+
                 bot.execute(sendPhoto);
                 userService.saveSelectionType(userId, null);
                 return new SendMessage();
@@ -155,15 +161,5 @@ public class MessageHandler {
                         throw new RuntimeException(e);
                     }
                 });
-    }
-
-    private static <T> List<T> getFirstThreeElements(List<T> list) {
-        int size = list.size();
-        if (size < 3) {
-            return new ArrayList<>(list);
-        } else {
-            int endIndex = Math.min(list.size(), 3);
-            return list.subList(0, endIndex);
-        }
     }
 }
