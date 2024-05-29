@@ -7,6 +7,7 @@ import com.pintel.constants.ButtonTextEnum;
 import com.pintel.exception.CommandNotFoundException;
 import com.pintel.model.UserTag;
 import com.pintel.properties.TelegramProperties;
+import com.pintel.service.ImageToColorTagsService;
 import com.pintel.service.ImageToMeaningTagsService;
 import com.pintel.service.PinterestService;
 import com.pintel.service.TgUserService;
@@ -37,6 +38,12 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Component
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -50,6 +57,7 @@ public class MessageHandler {
     final ImageToMeaningTagsService imageToMeaningTagsService;
     final PinterestService pinterestService;
     final UserTagService userTagService;
+    final ImageToColorTagsService imageToColorTagsService;
 
     public BotApiMethod<?> answerMessage(PinTelBot bot, Message message) {
         String chatId = message.getChatId().toString();
@@ -76,9 +84,9 @@ public class MessageHandler {
         SendMessage message = switch (commandEnum) {
             case START -> {
                 userService.addUser(userId, null, chatId, BotCommandEnum.START.getCommandName());
-                yield messageUtils.getSendMessage(chatId, BotMessageEnum.HELP_MESSAGE);
+                yield messageUtils.getSendMessageWithSelectionKeyboard(chatId, BotMessageEnum.HELP_MESSAGE);
             }
-            case HELP -> new SendMessage(chatId, BotMessageEnum.HELP_MESSAGE.getText());
+            case HELP -> messageUtils.getSendMessageWithSelectionKeyboard(chatId, BotMessageEnum.HELP_MESSAGE);
             case MAKE_SELECTION -> messageUtils.chooseSelectionType(chatId);
             default -> null;
         };
@@ -102,14 +110,14 @@ public class MessageHandler {
                 String filePath = bot.execute(new GetFile(photos.get(photos.size() - 1).getFileId())).getFilePath();
                 String urlFilePath = telegramProperties.getApiUrl() + "file/bot" + telegramProperties.getBotToken() + "/" + filePath;
 
-                logger.info(urlFilePath);
+                logger.info("url from user " + urlFilePath);
                 List<String> tags = List.of();
                 if (userService.getSelectionType(userId).equals(ButtonTextEnum.SELECTION_BY_COLOR.getText())) {
-                    tags = getFirstThreeElements(imageToMeaningTagsService.imageToTags(urlFilePath).getTags());
-                    //   tags = List.of("krosh");
+                    tags = imageToColorTagsService.imageToTagsColor(urlFilePath).getTags();
+                    // tags = List.of("krosh"); //чтобы полностью норм работало можете закоментить строку выше и на 115 строке и использовать моки на строчках 111 и 115
                     logger.info(tags.toString());
                 } else {
-                    //tags = List.of("kopatich");
+                    // tags = List.of("kopatich");
                     tags = imageToMeaningTagsService.imageToTags(urlFilePath).getTags();
 //                    tags = List.of("yellow", "potato");
                     if (!tags.isEmpty()) {
@@ -127,18 +135,22 @@ public class MessageHandler {
                     logger.info(tags.toString());
                 }
                 if (tags.isEmpty()) {
-                    return new SendMessage(chatId, BotMessageEnum.EXCEPTION_ILLEGAL_MESSAGE.getText());
+                    return messageUtils.getSendMessage(chatId, "Простите, я не обучен такое распозновать, попробуйте другое изображение");
                 }
 
                 var picLink = pinterestService.getPictureLinkByTag(String.join(" ", tags));
+                logger.info("получили ссылку");
+                InputStream stream = new URL(picLink).openStream();
+
                 SendPhoto sendPhoto = SendPhoto.builder()
                         .chatId(chatId)
-                        .photo(new InputFile(picLink))
+                        .photo(new InputFile(stream, picLink))
                         .caption(BotMessageEnum.RESULT_SELECTION.getText())
                         .build();
+
                 bot.execute(sendPhoto);
                 userService.saveSelectionType(userId, null);
-                return new SendMessage();
+                return messageUtils.getOnlyKeyboardSelectionMessage();
             }
             return messageUtils.getLoadImageMessage(chatId, userService.getSelectionType(userId));
         } catch (Exception e) {
@@ -175,15 +187,5 @@ public class MessageHandler {
                         }
                     });
                 });
-    }
-
-    private static <T> List<T> getFirstThreeElements(List<T> list) {
-        int size = list.size();
-        if (size < 3) {
-            return new ArrayList<>(list);
-        } else {
-            int endIndex = Math.min(list.size(), 3);
-            return list.subList(0, endIndex);
-        }
     }
 }
