@@ -34,26 +34,26 @@ public class ScheduleHandler {
     final PinterestService pinterestService;
 
 
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 */10 * * * *")
     public void sendScheduledMessage() throws IOException {
 
         List<TgUser> tgUsers = userService.getTgUsersByUsersId(userTagService.getDistinctUsers());
-        Map<Long, List<String>> userPopularTags = userTagService.getMostPopularTagsForUsers();
+        Map<Long, List<String>> userPopularTags = userTagService.getMostPopularTagsForUsers(1L);
 
-        Map<String, List<String>> chatPopularTags = tgUsers
+        Map<String,List<String>> chatPopularTags = tgUsers
                 .stream()
                 .collect(HashMap::new,
                         (m, tU) -> m.put(tU.getChatId(), userPopularTags.get(tU.getUserId())), HashMap::putAll);
 
-        Map<String, List<byte[]>> chatRecommendedImage = chatPopularTags
+        Map<String, List<String>> chatRecommendedImage = chatPopularTags
                 .entrySet()
                 .stream()
                 .collect(HashMap::new,
                         (m, cT) -> m.put(cT.getKey(), cT.getValue()
                                 .stream()
-                                .map(pinterestService::getPictureBytesByTags)
+                                .map(pinterestService::getPictureLinkByTag)
                                 .collect(Collectors.toList())), HashMap::putAll);
-//todo посмотри может тут имеет смысл ссылкой кидать картинку, типо вот как я делаю в MessageHandler - .photo(new InputFile(picLink))
+
         messageHandler.processCommand(BotCommandEnum.SEND_NEWSLETTER, chatRecommendedImage);
     }
 }
