@@ -1,0 +1,19 @@
+name: "color_tagging"
+backend: "python"
+input [
+{
+    name: "IMAGE"
+    data_type: TYPE_UINT8
+    dims: [ 1, -1]
+}
+]
+
+output [
+{
+    name: "COLORS"
+    data_type: TYPE_STRING
+    dims: [ 1, -1]
+}
+]
+
+instance_group [{ kind: KIND_CPU }]

@@ -1,0 +1,23 @@
+name: "object_detection"
+backend: "tensorrt"
+input [
+  {
+    name: "im_content_tagging"
+    data_type: TYPE_FP32
+    dims: [1, 3, 224, 224 ]
+  }
+]
+output [
+  {
+    name: "out_logits"
+    data_type: TYPE_FP32
+    dims: [1, 100, 92]
+  },
+  {
+    name: "out_boxes"
+    data_type: TYPE_FP32
+    dims: [1, 100, 4]
+  }
+]
+
+version_policy: { specific: { versions: [1]}}
